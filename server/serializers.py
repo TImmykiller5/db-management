@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from .models import Inventory, ProductType, Store, SalesRecord
+import decimal
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -45,6 +46,8 @@ class StoreSerializer(serializers.ModelSerializer):
 
 class TransactionSerializer(serializers.ModelSerializer):
     ProductName = serializers.SerializerMethodField(read_only=True)
+    ProductPrice = serializers.SerializerMethodField(read_only=True)
+    
 
     class Meta:
         model = SalesRecord
@@ -54,6 +57,16 @@ class TransactionSerializer(serializers.ModelSerializer):
             products = obj.productType
             serializers = ProductsTypeSerializer(products, many=False)
             return serializers.data['name']
+    
+    def get_ProductPrice(self, obj):
+            products = obj.productType
+            serializers = ProductsTypeSerializer(products, many=False)
+            return serializers.data['sellingPrice']
+    
+    # def get_TotalPrice(self, obj):
+    #         products = obj.productType
+    #         serializers = ProductsTypeSerializer(products, many=False)
+    #         return (float(serializers.data['sellingPrice']) * (obj.quantity))
 
 
 class ProductTypeSerializer(serializers.ModelSerializer):
