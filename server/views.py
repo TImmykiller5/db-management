@@ -155,7 +155,7 @@ class getTopProducts(APIView):
             # if items.productType.name in list:
             #     list[items.productType.name] += items.quantity
             # else:
-            #     list[items.productType.name] = items.quantity
+            #     list[items.productType.name] = items.quantity 
             
 
             
