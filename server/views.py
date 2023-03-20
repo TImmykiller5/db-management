@@ -145,7 +145,13 @@ class getTopProducts(APIView):
             list = {} 
             list['productName'] = items
             list['quantity'] = value
+            product = ProductType.objects.get(name=items)
+            currentQ = product.inventory_set.all()
+            Tstore = 0
+            for store in currentQ:
+                Tstore += store.quantity
             List.append(list)
+            list['stock'] = Tstore
             # if items.productType.name in list:
             #     list[items.productType.name] += items.quantity
             # else:
