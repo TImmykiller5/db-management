@@ -32,23 +32,25 @@ class getTransactions(APIView):
     
     def get(self, request):
         try:
-            year = int(request.GET.dict()['year'])
-            month = int(request.GET.dict()['month'])
-            day = int(request.GET.dict()['day'])
+            
+            days = int(request.GET.dict()['days'])
             dates = []
             currentDate = datetime.today()
             yesDate = (currentDate-timedelta(days=1)).replace(minute=0, hour=0, second=0)
-            preYesDate = (currentDate-timedelta(days=2)).replace(minute=0, hour=0, second=0)
-            prevRecord = SalesRecord.objects.filter(transactionDate__range = [preYesDate, currentDate]).filter(transactionType = "Sale").order_by('-totalPrice')
+            preYesDate = (currentDate-timedelta(days=days)).replace(minute=0, hour=0, second=0)
+            prevRecord = SalesRecord.objects.filter(transactionDate__range = [preYesDate, currentDate]).filter(transactionType = "Sale").order_by('-id')
             
-            # print(prevRecord)
+            print('prevRecord')
             serializer = TransactionSerializer(prevRecord, many=True)
             return Response(serializer.data)
 
         except:
             record = SalesRecord.objects.all().order_by('-transactionDate')[:20]
             serializer = TransactionSerializer(record, many=True)
+            print('latr')
+
             return Response(serializer.data)
+        
 
 class createProduct(APIView):
 
