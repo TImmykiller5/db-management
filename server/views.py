@@ -61,6 +61,7 @@ class createProduct(APIView):
             # if len(ProductType.objects.filter(name='Layers Mash')) == 0:
 
             data = request.data
+            print(data)
             Product = ProductType(
                 name= data['name'],
                 brand= data['brand'],
