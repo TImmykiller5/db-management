@@ -98,3 +98,36 @@ class ProductTypeSerializer(serializers.ModelSerializer):
         serializers = StoreSerializer(store, many=True)
         return serializers.data
     
+
+# class MonthlyReview(serializers.ModelSerializer):
+#     model = SalesRecord
+
+    
+class StoreInventorySerializer (serializers.ModelSerializer):
+    productName = serializers.SerializerMethodField(read_only=True)
+    costPrice = serializers.SerializerMethodField(read_only=True)
+    sellingPrice = serializers.SerializerMethodField(read_only=True)
+
+    class Meta:
+        model = Inventory
+        fields = '__all__'
+
+    def getProduct(self, obj):
+        product = obj.productType
+
+        serializers = ProductTypeSerializer(product, many=False)
+        return serializers.data
+        
+    
+
+    def get_productName(self, obj):
+        global m
+        m = self.getProduct(obj)
+        return self.getProduct(obj)['name']
+    
+    def get_costPrice(self, obj):
+        
+        return m['costPrice']
+    
+    def get_sellingPrice(self, obj):
+        return m['sellingPrice']

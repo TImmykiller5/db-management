@@ -3,7 +3,7 @@ from rest_framework.views import APIView
 from django.http import JsonResponse
 from django.shortcuts import render
 from rest_framework.response import Response
-from .serializers import UserSerializer, InventorySerializer, ProductsTypeSerializer, ProductTypeSerializer, TransactionSerializer, StoreSerializer
+from .serializers import UserSerializer, InventorySerializer, ProductsTypeSerializer, ProductTypeSerializer, TransactionSerializer, StoreSerializer, StoreInventorySerializer
 from django.contrib.auth.models import User
 from .models import Inventory, SalesRecord, Store, ProductType
 from rest_framework import status
@@ -34,15 +34,48 @@ class getTransactions(APIView):
         try:
             
             days = int(request.GET.dict()['days'])
-            dates = []
-            currentDate = datetime.today()
-            yesDate = (currentDate-timedelta(days=1)).replace(minute=0, hour=0, second=0)
-            preYesDate = (currentDate-timedelta(days=days)).replace(minute=0, hour=0, second=0)
-            prevRecord = SalesRecord.objects.filter(transactionDate__range = [preYesDate, currentDate]).filter(transactionType = "Sale").order_by('-id')
+            if days == 30 or days == 2:
+                dates = []
+                currentDate = datetime.today()
+                yesDate = (currentDate-timedelta(days=1)).replace(minute=0, hour=0, second=0)
+                preYesDate = (currentDate-timedelta(days=days)).replace(minute=0, hour=0, second=0)
+                prevRecord = SalesRecord.objects.filter(transactionDate__range = [preYesDate, currentDate]).filter(transactionType = "Sale").order_by('-id')
             
-            print('prevRecord')
-            serializer = TransactionSerializer(prevRecord, many=True)
-            return Response(serializer.data)
+                print('prevRecord')
+                serializer = TransactionSerializer(prevRecord, many=True)
+                return Response(serializer.data)
+
+
+                # return Response('no')
+
+
+            else:
+                print('trying')
+                currentDate = datetime.today()
+                preYesDate = (currentDate-timedelta(days=days)).replace(minute=0, hour=0, second=0)
+                prevRecord = SalesRecord.objects.filter(transactionDate__range = [preYesDate, currentDate]).filter(transactionType = "Sale").order_by('-transactionDate')
+                total = 0
+                trascationRecord ={}
+                date = prevRecord[0].transactionDate.date()
+                for i, items in enumerate(prevRecord):
+                    product = (items.productType)
+                    if items.transactionDate.date() == date:
+                        total += (product.sellingPrice * items.quantity) - (product.costPrice * items.quantity)
+                        if i+1 == len(prevRecord):
+                            trascationRecord[f'{items.transactionDate.date()}'] = total
+
+                    else:
+                        trascationRecord[f'{items.transactionDate}'] = total
+                        date = (items.transactionDate.date())
+                        total = 0
+                        total += (product.sellingPrice * items.quantity) - (product.costPrice * items.quantity)
+
+
+
+
+
+
+            return JsonResponse(trascationRecord, safe=False)
 
         except:
             record = SalesRecord.objects.all().order_by('-transactionDate')[:20]
@@ -90,6 +123,61 @@ class postTransaction(APIView):
         date = data['date']
         transactionType = data['transactionType']
 
+        if transactionType == 'transfer':
+            store2 = data['store2']
+            producTra = ProductType.objects.get(name = product)
+
+            stor1 = Store.objects.get(name = store)
+            stor2 = Store.objects.get(name = store2)
+            inventory1 = Inventory.objects.filter(store=stor1).filter(productType=producTra)
+            inventory2 = Inventory.objects.filter(store=stor2).filter(productType=producTra)
+            if len(inventory2) == 0:
+                newEntry = Inventory(
+                    productType = producTra,
+                    store = stor2,
+                    quantity = quantity,
+                    purchaseDate = date
+            )
+                newEntry.save()
+                inv1 = inventory1[0]
+                inv1.quantity -= int(quantity)
+                inv1.save()
+                print(inventory2, inventory1)
+            else:
+                inv1 = inventory1[0]
+                inv2 = inventory2[0]
+                inv2.quantity += int(quantity)
+                inv2.save()
+                inv1.quantity -= int(quantity)
+                inv1.save()
+
+            Record1 = SalesRecord(
+            productType = producTra,
+            quantity = quantity,
+            transactionType = 'Transfer Out',
+            transactionDate = date,
+            store = stor1,
+            totalPrice = 0,
+        )
+            Record2 = SalesRecord(
+            productType = producTra,
+            quantity = quantity,
+            transactionType = 'Transfer In',
+            transactionDate = date,
+            store = stor2,
+            totalPrice = 0,
+        )
+            
+            
+            Record1.save()
+            Record2.save()
+
+            print(store2)
+            
+
+            return Response('worked')
+
+
         # 2023-03-07T14:01
 
         stor = Store.objects.get(name = store)
@@ -134,6 +222,10 @@ class getTopProducts(APIView):
         prevRecord = SalesRecord.objects.filter(transactionDate__range = [preYesDate, currentDate]).filter(transactionType = "Sale").order_by('-totalPrice')
         List = []
 
+
+        for items in List:
+            pass
+
         recordList = {}
 
         for items in prevRecord:
@@ -160,9 +252,16 @@ class getTopProducts(APIView):
             # else:
             #     list[items.productType.name] = items.quantity 
             
+        List = sorted(List, key=lambda k: k.get('quantity', 0), reverse=True)
+        profit = 0
+        for items in List:
+            product = ProductType.objects.get(name = items['productName'])
+            profit += (product.sellingPrice * items['quantity']) - (product.costPrice * items['quantity'])
+            print(profit)
+        # List.append({'profit':profit})
+        # print(List)
 
-            
-        return JsonResponse(List[:4],safe=False )
+        return JsonResponse([List[:4], profit],safe=False )
     
 
 class storeData(APIView):
@@ -202,3 +301,11 @@ class storeData(APIView):
         except:
             message = {'detail':'PLEASE CHANGE NAME OR ADDRESS'}
             return Response(message, status=status.HTTP_400_BAD_REQUEST)
+
+
+class getStore(APIView):
+    
+    def get(self, request, pk):
+        inventory = Inventory.objects.filter(store_id=pk)
+        serializer = StoreInventorySerializer(inventory, many=True)
+        return Response(serializer.data)
