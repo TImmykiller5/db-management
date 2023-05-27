@@ -81,14 +81,12 @@ WSGI_APPLICATION = 'db.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'railway',
-        'USER': 'root',
-        'PASSWORD': '0uYglLZ5IXoB7U5bmKtJ',
-        'HOST':'containers-us-west-83.railway.app',
-        'PORT':'5979',
-        'OPTIONS': {'init_command': "SET sql_mode='STRICT_TRANS_TABLES'"},
-
+        'ENGINE': 'django.db.backends.postgresql_psycopg2',
+        'NAME': 'railway', 
+        'USER': 'postgres',
+        'PASSWORD': 'iePmFERPpjupCYZjg6AD',
+        'HOST': 'containers-us-west-203.railway.app', 
+        'PORT': '6410',
     }
 }
 
